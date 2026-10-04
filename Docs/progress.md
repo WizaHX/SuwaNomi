@@ -7,10 +7,10 @@ This is the current handoff for continuing work. Verify the checkout before rely
 ## Current state
 
 - Phase: repository setup and migration planning. No application implementation has started.
-- Current task: establish persistent progress tracking; documentation changes only.
-- Last inspected branch: `change-migration`, at `d3bed883` (`docs`). The working tree was clean before this tracking task.
+- Current task: record the owner’s Raspberry Pi hardware and clarify the expected container architecture; documentation changes only.
+- Last inspected branch: `change-migration`, at `9913cf2e` (`more docs changes`). The working tree was clean before this hardware documentation update.
 - Server baseline: `cff9169a378013f9eba6646ca1de1ae956ea509b`. The committed `suwa-server/` tree still exactly matches that upstream tree.
-- Current tracking changes are uncommitted: this file, `AGENTS.md`, `README.md`, and `Docs/repository-setup.md`.
+- Current hardware documentation changes are uncommitted: this file, `AGENTS.md`, and `Docs/docker-deployment.md`.
 - Live push status is unverified. The current branch matches its local remote-tracking ref, but the earlier live GitHub check failed because the shell could not obtain HTTPS credentials. The owner was configuring authentication through VS Code; do not assume it is still broken or fixed.
 
 ## Completed
@@ -18,7 +18,8 @@ This is the current handoff for continuing work. Verify the checkout before rely
 - Imported the server as a subtree with upstream history preserved: `7c70c9b7`. Repository layout and update commands are in [repository setup](repository-setup.md).
 - Recorded migration requirements and the owner's server-only scope in [the migration plan](same-id-migration-plan.md). A separate WebUI project or custom WebUI build is out of scope.
 - Separated deployment notes into [Docker deployment](docker-deployment.md) and added root agent instructions. These documents are present in `d3bed883`.
-- Added this progress handoff, linked it from the README, and instructed agents to read and maintain it. Removed stale working-state notes from repository setup in favor of this file.
+- Added this progress handoff, linked it from the README, and instructed agents to read and maintain it. Removed stale working-state notes from repository setup in favor of this file. Committed in `9913cf2e`.
+- Recorded the owner-confirmed Raspberry Pi 4 Model B and reported 64-bit OS. Expected platform is `linux/arm64`; “x64” was interpreted as 64-bit ARM, with on-device verification still pending.
 
 ## Findings to carry forward
 
@@ -36,12 +37,13 @@ These are source-inspection findings, not runtime validation. Paths below are re
 1. **Next technical step:** inspect the unchanged client's migration request sequence and map it to server handlers. Establish whether original/destination pairing and completion navigation can work reliably with server-only changes; record concrete evidence in the migration plan.
 2. Finalize history storage and visibility/backup behavior, chapter matching, destination conflicts, preserved settings, and cleanup/concurrency/recovery design.
 3. Implement and validate the migration feature within the agreed scope once planning is resolved. Follow the migration plan's validation checklist using disposable data.
-4. Confirm Raspberry Pi model and OS architecture, then inspect container packaging and choose the build/storage approach. This information is needed for deployment, not for the next source-inspection step.
+4. Verify the expected ARM64 architecture on the Pi before building/deploying, inspect container packaging, and choose the build/storage approach. Model is confirmed; these deployment steps do not block source inspection.
 
 Unresolved design questions are not completed features. Do not treat this checklist as a request to start application changes during a documentation-only task.
 
 ## Validation
 
 - Server baseline check: `git rev-parse HEAD:suwa-server cff9169a^{tree}` returned identical tree hashes during this task.
-- Documentation tracking changes: content review, local Markdown link existence checks, and `git diff --check` passed.
+- Previous tracking changes: content review, local Markdown link existence checks, and `git diff --check` passed.
+- Hardware documentation update: content review and `git diff --check` passed; no on-device architecture check was performed.
 - No application build, automated application tests, runtime migration, Docker build, or Pi deployment has been performed in this work.

@@ -4,7 +4,7 @@ These instructions apply to this repository. Read any more specific `AGENTS.md` 
 
 ## Project context
 
-SuwaNomi is a personal customization of Suwayomi-Server, intended to run through Docker on a Raspberry Pi. Desktop packaging and general-purpose upstream compatibility are not project goals. Do not assume the Pi model or OS architecture.
+SuwaNomi is a personal customization of Suwayomi-Server, intended to run through Docker on a Raspberry Pi. Desktop packaging and general-purpose upstream compatibility are not project goals. Use `Docs/docker-deployment.md` for the recorded hardware and architecture verification status.
 
 - Read `README.md` for the project overview.
 - Read `Docs/progress.md` before starting work for the current state, evidence, and next steps. Verify its Git observations against the live checkout.
