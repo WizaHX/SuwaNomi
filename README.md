@@ -7,21 +7,12 @@ Personal Suwayomi customization project, focused on running the server in Docker
 
 The first planned feature is optional source migration that retains the manga ID and reading history. Application changes have not started.
 
-## Upstream updates
+## Documentation
 
-From the project root, with a clean working tree:
-
-```sh
-git subtree pull --prefix=suwa-server upstream master
-```
-
-Resolve any merge conflicts, then build and test before pushing. The `upstream` remote points to https://github.com/Suwayomi/Suwayomi-Server.git. After cloning this project on another machine, add it once:
-
-```sh
-git remote add upstream https://github.com/Suwayomi/Suwayomi-Server.git
-```
-
-Commit project and server changes in this top-level repository. No submodule initialization is needed.
+- [Progress and next steps](Docs/progress.md)
+- [Repository setup and upstream updates](Docs/repository-setup.md)
+- [Docker deployment on Raspberry Pi](Docs/docker-deployment.md)
+- [Same-ID migration plan](Docs/same-id-migration-plan.md)
 
 ## License
 
