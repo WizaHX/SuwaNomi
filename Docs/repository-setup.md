@@ -29,12 +29,8 @@ git subtree pull --prefix=suwa-server upstream master
 
 Resolve any merge conflicts, then build and test before pushing.
 
-## Last inspected state (2026-10-04)
+## Working state and agent instructions
 
-- Working branch: `change-migration`.
-- Both `main` and `change-migration` pointed to subtree import commit `7c70c9b7`.
-- Imported server baseline: `cff9169a378013f9eba6646ca1de1ae956ea509b`; the server subtree matched that upstream tree exactly.
-- Local remote-tracking refs matched both branches. A live remote check failed because the shell could not obtain HTTPS credentials, so push status was not independently verified.
-- Authentication is being configured through VS Code. Check current Git status and remote state before assuming a push is needed or complete.
+See [progress and next steps](progress.md) for the latest inspected branch, baseline, validation, and authentication status. Check current Git status and remote state before assuming a push is needed or complete.
 
-Read applicable `AGENTS.md` instructions before implementation. None were found during this inspection.
+Read the root [AGENTS.md](../AGENTS.md) and any applicable directory-specific instructions before making changes.

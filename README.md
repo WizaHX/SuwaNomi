@@ -9,6 +9,7 @@ The first planned feature is optional source migration that retains the manga ID
 
 ## Documentation
 
+- [Progress and next steps](Docs/progress.md)
 - [Repository setup and upstream updates](Docs/repository-setup.md)
 - [Docker deployment on Raspberry Pi](Docs/docker-deployment.md)
 - [Same-ID migration plan](Docs/same-id-migration-plan.md)

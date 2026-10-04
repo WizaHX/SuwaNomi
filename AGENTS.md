@@ -7,6 +7,7 @@ These instructions apply to this repository. Read any more specific `AGENTS.md` 
 SuwaNomi is a personal customization of Suwayomi-Server, intended to run through Docker on a Raspberry Pi. Desktop packaging and general-purpose upstream compatibility are not project goals. Do not assume the Pi model or OS architecture.
 
 - Read `README.md` for the project overview.
+- Read `Docs/progress.md` before starting work for the current state, evidence, and next steps. Verify its Git observations against the live checkout.
 - Read `Docs/repository-setup.md` for repository layout and upstream update procedures.
 - Read `Docs/docker-deployment.md` for deployment decisions.
 - For migration work, read `Docs/same-id-migration-plan.md`. Keep feature-specific requirements there rather than duplicating them here.
@@ -19,6 +20,8 @@ SuwaNomi is a personal customization of Suwayomi-Server, intended to run through
 - This is a server customization. Do not introduce a separate WebUI/site project or require a custom WebUI build for the planned migration feature.
 - Proceed with routine, reversible work within the request. Ask only when missing information materially blocks the work or changes its scope.
 - Keep documentation current: repository notes, deployment notes, and feature plans belong in their respective documents.
+- Update `Docs/progress.md` after meaningful milestones and before ending a work session. Record completed and unfinished work, validation results, blockers, and the exact next step. Include relevant file paths or commit hashes as evidence; distinguish uncommitted changes from commits and local commits from verified pushes.
+- Keep the progress file a concise current handoff, not a transcript. Replace stale state, retain useful findings, and link to plans for requirements and design decisions. A next-step entry is not authorization beyond the user's request.
 - Report what changed, what was checked, and any remaining limitations. Never claim unrun tests passed.
 
 ## Git and imported source
