@@ -1,12 +1,10 @@
 # Manga migration with a stable server ID
 
-Status: planning only. No fork or application implementation yet.
+Status: planning only. No application implementation yet.
 
 ## Objective
 
 Add an optional server setting, **Use same ID on migration**. When enabled, changing a manga’s source retains its existing database ID and server URL. The destination source becomes authoritative for manga details and the active chapter list.
-
-Project directory: `/home/user/CodeProjects/SuwaNomi`. Planning documents use the existing `Docs` directory. Fork and check out Suwayomi-Server here when implementation starts; choose a repository layout that retains these documents.
 
 ## Agreed requirements
 
@@ -36,11 +34,19 @@ These findings come from source inspection, not runtime tests. Inspect actual hi
 
 ## Proposed implementation
 
-Add a dedicated server migration operation accepting original and destination manga IDs and returning the retained original ID. Prepare the destination normally, then transplant its source data into the original record.
+### Server-only scope (owner decision)
 
-The initiating WebUI must call the new operation when the setting is enabled. A server setting alone cannot change its current copy/remove sequence. Identify the smallest companion WebUI change and choose its repository location when coding begins. Keep normal copy mode and setting-disabled migration unchanged.
+This feature targets the owner’s personal use. Do not require a separate WebUI/site project, companion WebUI source changes, or a custom WebUI build. Implement the replacement in the server in place; replacing existing server behavior is authorized where needed. General-purpose client compatibility and a new multi-user permission framework are not goals. Keep existing authentication and preserve recorded personal data.
 
-Apply authorization appropriate to changing a shared manga for all affected users. Ordinary library updates must not implicitly trigger migration.
+The optional **Use same ID on migration** setting remains default-off. Configure it through server configuration if exposing a new control would require WebUI changes.
+
+First verify the exact requests emitted by the unchanged client's migration action, including how original and destination IDs are conveyed and what ID the client uses afterward. The inspected server `MangaMutation.updateManga(s)` inputs contain IDs and an `inLibrary` patch, not an explicit original/destination migration pair. The previously researched client coordinates migration through several ordinary API calls; there is not yet a verified single server migration function to replace.
+
+Prefer replacing or adapting the existing server request path so the unchanged migration action invokes a centralized same-ID migration service. A new server mutation alone is insufficient if the existing client never calls it. Do not infer a destructive migration from timing, matching titles, or unrelated library add/remove calls. Establish a deterministic trigger and source/destination pairing before implementation, and verify client navigation/cache behavior after retaining the original ID.
+
+If the unchanged client does not transmit enough information to distinguish migration reliably, document that concrete limitation and choose a server-side invocation/configuration mechanism within this project. Do not silently reintroduce a WebUI project requirement or claim transparent integration has been proven. Any alternative invocation that changes the user's migration workflow must be stated explicitly before implementation.
+
+The internal migration service should accept original and destination IDs, prepare and validate destination content, transplant source data into the original record, and return the retained original ID. Preserve setting-disabled behavior where possible; when enabled, replacing the current migration behavior takes priority over supporting every upstream client option. Ordinary library updates must not accidentally trigger migration.
 
 ### Minimal history storage
 
@@ -78,25 +84,25 @@ Assess whether a small persisted operation record is needed for crash recovery. 
 
 ## Work phases
 
-### 1. Establish the fork and verify the baseline
+### 1. Verify migration integration points
 
-When ready to start, fork/clone the server into the agreed project layout and read repository instructions. Verify settings conventions, API mutation patterns, history storage, download paths, cache invalidation, locking, and test infrastructure. Locate companion WebUI integration points.
+Verify settings conventions, API mutation patterns, history storage, download paths, cache invalidation, locking, and test infrastructure. Verify the unchanged client’s request contract through read-only inspection; no WebUI project changes are in scope.
 
 ### 2. Finalize storage and API design
 
-Choose minimal history representation, chapter matching rules, destination conflict handling, shared-user authorization, and the setting/API payloads. Document any necessary schema migration. Preserve all affected users’ history.
+Choose minimal history representation, chapter matching rules, destination conflict handling, the deterministic server-side trigger, and setting/service payloads. Use existing authentication for this personal deployment. Document any necessary schema migration. Preserve all affected users’ history.
 
 ### 3. Implement server behavior
 
 Implement configuration, migration service, authorization, cleanup coordination, transactional replacement, history retention, and failure handling. Keep the default path unchanged.
 
-### 4. Integrate the initiating UI
+### 4. Integrate the server request path
 
-Expose the server setting and call the operation when enabled. Keep completion results and navigation on the original ID. Preserve copy mode.
+Connect the verified server-side trigger to the migration service without changing WebUI source. Document how to enable the setting in server configuration. Verify completion, subsequent requests, and navigation with the unchanged client. If transparent integration is impossible, resolve the explicit server-only invocation workflow before coding it. Copy-mode compatibility is secondary to the owner’s in-place migration requirement; document any intentional behavior change.
 
 ### 5. Validate on a disposable database/server
 
-Use targeted integration tests and a manual migration to verify:
+Validate migration in a disposable container/database before using the real library. Use targeted integration tests and a manual migration to verify:
 
 - Original manga ID/URL remain unchanged and subsequent fetches use the new source.
 - Destination details and active chapters become authoritative.
@@ -107,20 +113,10 @@ Use targeted integration tests and a manual migration to verify:
 - Old links, downloads, and caches are removed and download flags remain correct.
 - Destination-fetch and conflict failures happen before cleanup.
 - Cleanup failure, database failure after cleanup, concurrent updates, and process interruption leave explicit, recoverable states.
-- Setting-disabled migration and copy mode preserve existing behavior.
+- Setting-disabled migration preserves existing behavior; any intentional change to enabled-mode copy behavior is documented.
+- The chosen server-only invocation works without a separate WebUI project or custom WebUI build; an unchanged-client migration path is tested if supported.
 - Browsing the destination source does not accidentally create a second canonical record.
 
 ## Completion criteria
 
 A user enables the server option and migrates a manga once. New source content appears under the original manga ID. Personal data and minimal reading history remain available, while obsolete source links and files are discarded. Document implementation/schema changes, validation results, and remaining limitations before delivery.
-
-## Repository and deployment decisions
-
-- Project remote: https://github.com/WizaHX/SuwaNomi.
-- One top-level repository includes `Docs/`, other project files, and the server under `suwa-server/`.
-- Import server as a Git subtree with original history preserved; retain the upstream remote for optional updates.
-- Primary deployment target is Docker on a Raspberry Pi. Desktop installers are out of scope.
-- Confirm Raspberry Pi model and OS architecture before selecting the image build platform.
-- Inspect upstream container packaging and persistent storage conventions before implementing image builds.
-- Validate migration in a disposable container/database before using the real library.
-- Decide image build/distribution separately; publishing to a registry is not yet requested.
