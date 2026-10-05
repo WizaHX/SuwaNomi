@@ -16,7 +16,8 @@ SuwaNomi is a personal customization of Suwayomi-Server, intended to run through
 
 - Match the requested scope. Planning or inspection requests do not authorize application implementation.
 - Inspect relevant code before choosing a design. Distinguish verified behavior from assumptions and unresolved decisions.
-- Make focused changes using existing conventions; avoid unrelated refactoring, dependency upgrades, and formatting churn.
+- Make focused changes using existing conventions; avoid unrelated refactoring, dependency upgrades, and formatting churn. Minimize the upstream diff and isolate custom behavior so future upstream merges remain manageable.
+- Preserve bidirectional upstream backup compatibility: upstream → SuwaNomi → upstream → SuwaNomi. Do not change backup schemas, serializers, or restore behavior, add custom backup fields, or encode custom data in fake chapter records. Exclude custom settings from backups. Verify backup round trips in both directions. The migration feature retains only the highest-read cutoff and discards old per-chapter history; do not reintroduce a custom history archive.
 - This is a server customization. Do not introduce a separate WebUI/site project or require a custom WebUI build for the planned migration feature.
 - Proceed with routine, reversible work within the request. Ask only when missing information materially blocks the work or changes its scope.
 - Keep documentation current: repository notes, deployment notes, and feature plans belong in their respective documents.

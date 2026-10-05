@@ -1,122 +1,84 @@
 # Manga migration with a stable server ID
 
-Status: planning only. No application implementation yet.
+Status: explicit API invocation with no enablement setting. See [progress](progress.md) for validation.
 
 ## Objective
 
-Add an optional server setting, **Use same ID on migration**. When enabled, changing a manga’s source retains its existing database ID and server URL. The destination source becomes authoritative for manga details and the active chapter list.
+Provide an explicit API command accepting original and destination manga IDs. Keep the original manga ID while replacing its source information and active chapters with the destination's content.
+
+The owner selected explicit API invocation. The existing WebUI migration button remains unchanged; no separate WebUI project or custom build is required. See [request trace](migration-request-trace.md) and [API usage](same-id-migration-api.md).
 
 ## Agreed requirements
 
-- Default the setting to off to preserve existing behavior.
-- Keep the original manga row and ID. No primary-key swapping or rollback copy.
-- Replace source binding, upstream URL, title, description, cover, and other source-owned information.
-- Retain library membership, categories, tracking associations, and reasonable user settings.
-- Retain minimal reading history: manga, chapter name/number, and reading date, for each affected user.
-- Preserve read status on confidently matched destination chapters. Retain bookmarks where a reliable match exists.
-- Discard old active chapter links, downloads, and source-dependent page/cover caches.
-- Historical information needs no working URL, page data, or download state. Unnecessary fields may be blank, null, or defaulted as allowed by the schema.
-- Chapters missing from the new source must not lose their historical reading information.
-- No requirement to preserve exact page position across different editions.
+- Clients explicitly invoke the API; no server enablement setting is required. Ordinary library updates and upstream migration/copy calls retain their existing behavior.
+- Keep the original manga row and ID. No ID swapping or backup manga copies.
+- Use destination source metadata and active chapters. Retain library membership, categories, trackers, manga metadata, and reader settings attached to the original ID.
+- For each user, take the highest original chapter number marked read. Mark every destination chapter at or below it read; chapters above it stay unread. With no read chapters, all destination chapters stay unread. Unread gaps below the cutoff are deliberately ignored.
+- **Replace the entire chapter list with the destination’s list.** Discard old per-chapter history, bookmarks and positions. Do not add matching logic, special-chapter fallback, historical records or synthetic URLs.
+- Discard old chapter links, downloads, covers, page caches, positions, and source-dependent hashes.
+- Validate the destination before cleanup; clean old files while original source metadata still identifies their locations, then replace source data transactionally.
+- Keep the upstream diff minimal and isolate custom behavior so upstream merges remain manageable.
+- **Leave backup schemas and backup/restore code unchanged.** Backups must support upstream → SuwaNomi → upstream → SuwaNomi for standard library data. Retained reading state uses ordinary upstream chapter fields.
+- This is a personal deployment. Use existing authentication/permissions; do not invent a new multi-user permission framework.
 
-## Current source findings
+## Verified source findings
 
-Research baseline, to recheck before coding:
+- Server baseline: `cff9169a378013f9eba6646ca1de1ae956ea509b`.
+- WebUI research baseline: `5596096c7e72a27b051a66b375b642f273830b36`; the installed client version has not been verified.
+- The browser coordinates copy and cleanup requests. No mandatory request supplies a migration pair; optional tracker copying is insufficient as a trigger. See the request trace for exact calls.
+- `MangaTable` separates ID from source binding and URL, so replacing its source does not require primary-key changes.
+- `ChapterUserTable` stores per-user read state and one `lastReadAt` value, cascading on chapter deletion. It is not a complete reading-event log.
+- Manga and chapter content are shared across users. Calculate the read cutoff separately for each user.
+- Download paths depend on source name and manga title. Cleanup must reject directories shared with another manga and must not follow paths into unrelated storage.
 
-- Server commit: `cff9169a378013f9eba6646ca1de1ae956ea509b`.
-- WebUI commit: `5596096c7e72a27b051a66b375b642f273830b36`.
-- Migration is currently coordinated by WebUI `src/features/migration/MangaMigration.ts`. It copies selected state to the destination and removes the original from the library through multiple API calls.
-- Server `MangaTable` separates the integer ID from `sourceReference` and `url`. Keeping the ID does not require primary-key manipulation.
-- `ChapterUserTable` contains per-user read state and `lastReadAt`, with a cascading reference to chapter records. Deleting old chapters without preserving their state can erase history.
-- Current master shares manga/chapter content across users while storing personal state separately. In-place replacement affects everyone referencing the manga.
+## Implementation design
 
-These findings come from source inspection, not runtime tests. Inspect actual history storage and queries before selecting the storage design. Preserve all existing recorded dates/events; do not assume that a last-read timestamp constitutes a complete reading-event log.
+### Entry point and read cutoff
 
-## Proposed implementation
+Expose `migrateMangaSameId(originalId, destinationId)` through GraphQL, using existing authentication, with no administrator permission requirement. Return the retained manga ID. Reload the retained manga in the client afterward.
 
-### Server-only scope (owner decision)
+For an original highest read chapter of 30: destination 1–45 becomes 1–30 read and 31–45 unread; destination 15–40 becomes 15–30 read and 31–40 unread; destination 35–44 remains entirely unread. Only destination chapters exist afterward. Names, URLs and metadata always come from the destination; no old/new chapter mapping is needed.
 
-This feature targets the owner’s personal use. Do not require a separate WebUI/site project, companion WebUI source changes, or a custom WebUI build. Implement the replacement in the server in place; replacing existing server behavior is authorized where needed. General-purpose client compatibility and a new multi-user permission framework are not goals. Keep existing authentication and preserve recorded personal data.
-
-The optional **Use same ID on migration** setting remains default-off. Configure it through server configuration if exposing a new control would require WebUI changes.
-
-First verify the exact requests emitted by the unchanged client's migration action, including how original and destination IDs are conveyed and what ID the client uses afterward. The inspected server `MangaMutation.updateManga(s)` inputs contain IDs and an `inLibrary` patch, not an explicit original/destination migration pair. The previously researched client coordinates migration through several ordinary API calls; there is not yet a verified single server migration function to replace.
-
-Prefer replacing or adapting the existing server request path so the unchanged migration action invokes a centralized same-ID migration service. A new server mutation alone is insufficient if the existing client never calls it. Do not infer a destructive migration from timing, matching titles, or unrelated library add/remove calls. Establish a deterministic trigger and source/destination pairing before implementation, and verify client navigation/cache behavior after retaining the original ID.
-
-If the unchanged client does not transmit enough information to distinguish migration reliably, document that concrete limitation and choose a server-side invocation/configuration mechanism within this project. Do not silently reintroduce a WebUI project requirement or claim transparent integration has been proven. Any alternative invocation that changes the user's migration workflow must be stated explicitly before implementation.
-
-The internal migration service should accept original and destination IDs, prepare and validate destination content, transplant source data into the original record, and return the retained original ID. Preserve setting-disabled behavior where possible; when enabled, replacing the current migration behavior takes priority over supporting every upstream client option. Ordinary library updates must not accidentally trigger migration.
-
-### Minimal history storage
-
-First inspect history queries, foreign keys, chapter URL constraints, and chapter refresh behavior. Select the smallest compatible implementation:
-
-1. Historical chapter records with cleared source fields and an explicit distinction from active chapters, if this fits the existing model cleanly.
-2. Minimal historical snapshots independent of active chapter records, if cleaner for the existing queries and constraints.
-
-Neither storage approach is decided yet. The requirement is historical manga/chapter/date information, not retention of operational chapter data. Blank URLs alone must not let historical records enter active chapter lists, source matching, or downloads. Check uniqueness constraints before using blank/null URLs.
+Allow destinations with existing personal state or downloads, and allow migration to/from the local source. The original ID’s library state remains authoritative; destination-only personal state is discarded when its separate row is removed. Future source browsing resolves the destination binding to the retained original record.
 
 ### Operation sequence
 
-1. Validate IDs, permissions, destination source availability, and destination conflicts. Reject migration to the same record.
-2. Fetch and validate destination manga details and its complete chapter list before destructive work.
-3. Lock conflicting refresh/download/migration operations, revalidate state, and stop or drain in-flight work so it cannot recreate old files or write stale data.
-4. Capture personal chapter state and reading history before old chapter deletion.
-5. Delete old downloads and source-dependent caches while original metadata still identifies their locations. If cleanup fails, stop before source replacement and report the failure.
-6. In one database transaction, preserve minimal history, replace source-owned manga data and active chapters, retain manga-level personal data, and apply reliably matched chapter state.
-7. Resolve the prepared destination record without creating accidental duplicates or deleting existing user data.
-8. Invalidate remaining in-memory state, publish appropriate update notifications, and return the original manga ID.
-9. Release locks in all outcomes.
+1. Validate authentication, IDs and destination source availability. The original extension or website may be gone.
+2. Exclude conflicting source/file work. If a manga is busy, reject before cleanup and allow an explicit retry when idle.
+3. Fetch and validate complete destination metadata and chapters before destructive work.
+4. Resolve cleanup paths using stored titles and upstream’s source-or-stub lookup. Reject unsafe/shared paths. Missing original extensions must not block migration; folders that cannot be resolved after extension removal may remain on disk.
+5. Remove queued downloads and clear download flags before deleting files, so interruption cannot advertise deleted/partial files as complete.
+6. Delete downloads/caches at the resolved paths. Local-source content files are source material and remain in the separate local directory. On cleanup failure, stop before source replacement.
+7. In one database transaction, revalidate both records, capture each user’s highest read number, replace active chapters/source-owned manga fields, apply the read cutoff, and remove the unused destination.
+8. Return the original manga ID and release in-memory guards in all outcomes. Queued download removals use existing notifications.
 
-Filesystem deletion cannot roll back with the database transaction. If replacement fails after cleanup, the original record may remain without downloaded files; this is acceptable. Download flags must reflect removed files even if replacement fails. Reading history and other personal state must remain intact.
+Filesystem deletion cannot roll back with a database transaction. Failure after cleanup may leave the original manga without downloads, but must preserve its source and personal reading state until replacement commits.
 
-Assess whether a small persisted operation record is needed for crash recovery. This would record phases and cleanup targets, not duplicate the old manga. Interrupted cleanup must be retryable rather than silently leaving abandoned files or stale flags indefinitely.
+The operation is intended for a maintenance window without concurrent backup restore or library synchronization; those unchanged upstream paths do not acquire the migration guards.
 
-### Conflicts and matching
+There is no persistent migration state or database schema addition. On failure, the guard is released and the original source remains usable with its reading state intact; downloads may be partially or fully removed. Retry the normal command with the same IDs. Cleanup tolerates missing files. A process restart also releases in-memory guards. No pending-operation query or cancellation command is needed.
 
-- The destination may already exist and hold library membership, history, or other users’ data. Do not blindly delete it.
-- Prefer rejecting a non-temporary destination conflict before cleanup unless a deliberate merge policy is implemented. Finalize this policy during design.
-- Check source lookup/deduplication so future browsing resolves to the retained manga record.
-- Match chapters using reliable information, accounting for duplicate numbers, specials, and missing chapters. Chapter position alone is insufficient.
-- Preserve unmatched history without marking unrelated destination chapters read.
-- Reset source-dependent page positions/counts instead of assuming editions have identical pages.
+### Backup portability
 
-## Work phases
+Only standard manga/chapter state remains after migration. No custom history tables or backup fields are needed. Validate ordinary backup export and restore in both directions using the unchanged upstream representation. Use a normal backup restored into a fresh compatible server in either direction. Raw database interchange across versions and preservation of numeric IDs during backup restore are outside this feature’s guarantees.
 
-### 1. Verify migration integration points
+## Validation checklist
 
-Verify settings conventions, API mutation patterns, history storage, download paths, cache invalidation, locking, and test infrastructure. Verify the unchanged client’s request contract through read-only inspection; no WebUI project changes are in scope.
+- Original ID remains unchanged; destination metadata and chapters become authoritative.
+- Manga-level tracking, categories, library membership, and settings survive.
+- Destination chapters at/below each user’s cutoff are read, including old unread gaps; chapters above stay unread.
+- Old chapters, bookmarks and reading dates are discarded; no matching or name fallback remains.
+- Old URLs, download files, covers, and page caches are removed before source replacement.
+- Destination fetch/validation errors occur before cleanup; existing destination state, local sources and missing old extensions do not block migration.
+- Cleanup failure, database failure after cleanup, busy operations, and process interruption leave recoverable states with correct download flags.
+- Ordinary retry works after cleanup/database failure; failed operations do not leave manga locked.
+- The API works without configuration changes; the upstream WebUI workflow remains unchanged.
+- Authenticated API invocation works without client changes; unauthorized users cannot invoke migration.
+- Backup formats and backup/restore implementation remain unchanged; ordinary library data survives round trips.
+- Source lookup after migration resolves to the retained ID.
 
-### 2. Finalize storage and API design
-
-Choose minimal history representation, chapter matching rules, destination conflict handling, the deterministic server-side trigger, and setting/service payloads. Use existing authentication for this personal deployment. Document any necessary schema migration. Preserve all affected users’ history.
-
-### 3. Implement server behavior
-
-Implement configuration, migration service, authorization, cleanup coordination, transactional replacement, history retention, and failure handling. Keep the default path unchanged.
-
-### 4. Integrate the server request path
-
-Connect the verified server-side trigger to the migration service without changing WebUI source. Document how to enable the setting in server configuration. Verify completion, subsequent requests, and navigation with the unchanged client. If transparent integration is impossible, resolve the explicit server-only invocation workflow before coding it. Copy-mode compatibility is secondary to the owner’s in-place migration requirement; document any intentional behavior change.
-
-### 5. Validate on a disposable database/server
-
-Validate migration in a disposable container/database before using the real library. Use targeted integration tests and a manual migration to verify:
-
-- Original manga ID/URL remain unchanged and subsequent fetches use the new source.
-- Destination details and active chapters become authoritative.
-- Tracking, categories, membership, and reasonable settings survive.
-- Chapter labels and existing reading dates survive for matched and unmatched chapters, for every affected user.
-- Reliable matches retain read state; ambiguous matches do not create false read state.
-- History never participates in active chapter fetching or downloading.
-- Old links, downloads, and caches are removed and download flags remain correct.
-- Destination-fetch and conflict failures happen before cleanup.
-- Cleanup failure, database failure after cleanup, concurrent updates, and process interruption leave explicit, recoverable states.
-- Setting-disabled migration preserves existing behavior; any intentional change to enabled-mode copy behavior is documented.
-- The chosen server-only invocation works without a separate WebUI project or custom WebUI build; an unchanged-client migration path is tested if supported.
-- Browsing the destination source does not accidentally create a second canonical record.
+Use disposable databases and storage for validation. Deployment work follows a working, tested implementation.
 
 ## Completion criteria
 
-A user enables the server option and migrates a manga once. New source content appears under the original manga ID. Personal data and minimal reading history remain available, while obsolete source links and files are discarded. Document implementation/schema changes, validation results, and remaining limitations before delivery.
+The client invokes the API with original and destination IDs. Destination content appears under the original ID, the highest-read cutoff and manga-level personal data survive, old chapter data is discarded, and ordinary upstream-compatible backups remain usable in both directions. Record actual checks and outstanding limitations in the progress file before delivery.

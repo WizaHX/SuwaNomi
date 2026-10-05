@@ -16,3 +16,11 @@ The intended runtime is Docker on the owner’s Raspberry Pi. Desktop installers
 ## Validation
 
 Validate changes in a disposable container/database before using the real library. Feature-specific migration checks belong in the [same-ID migration plan](same-id-migration-plan.md).
+
+## Local Docker test host
+
+- Linux Mint on AMD x64 (`linux/amd64`); Docker client 29.8.2 verified on 2026-10-05.
+- Test attempt blocked before container creation: host user `user` is not in the `docker` group, and `/var/run/docker.sock` is owned by `root:docker` with mode 660. Daemon access fails outside the Codex sandbox too.
+- Grant Docker access on the host, then restart the login session and Codex so the new group membership takes effect. Docker group membership grants root-equivalent access.
+- Next: build the current server and run a disposable AMD64 container with isolated storage, then invoke the migration API and verify retained ID, destination chapters and read cutoff. No real library should be mounted.
+- An AMD64 test validates container behavior on this PC; ARM64/Pi validation remains separate.
