@@ -20,7 +20,9 @@ Validate changes in a disposable container/database before using the real librar
 ## Local Docker test host
 
 - Linux Mint on AMD x64 (`linux/amd64`); Docker client 29.8.2 verified on 2026-10-05.
-- Test attempt blocked before container creation: host user `user` is not in the `docker` group, and `/var/run/docker.sock` is owned by `root:docker` with mode 660. Daemon access fails outside the Codex sandbox too.
-- Grant Docker access on the host, then restart the login session and Codex so the new group membership takes effect. Docker group membership grants root-equivalent access.
-- Next: build the current server and run a disposable AMD64 container with isolated storage, then invoke the migration API and verify retained ID, destination chapters and read cutoff. No real library should be mounted.
+- The owner runs Docker through `sudo` and prefers not to join the Docker group. Codex cannot run sudo Docker commands unattended when a password is required.
+- The owner built the server JAR and started `suwanomi-test` on localhost port 4568 using `eclipse-temurin:21-jdk`, with isolated named volume `suwanomi-test-data` mounted at `/data`.
+- User-reported live migration: original 49 changed from MangaBall to Qiscans; destination 75 disappeared; chapters 1–6 remained read and 7 unread. API inspection confirmed 49's Qiscans binding, 152 destination chapters and a 404 for 75. The REST response showed no user reading/library state; database/user-context verification remains outstanding.
+- WebView failed because `libjawt.so` could not load `libXext.so.6`. The minimal Java image is incomplete for CEF/browser support. A separate source request reported Cloudflare bypass disabled.
+- Next: adapt upstream Docker packaging for the custom JAR and browser dependencies. Preserve the test volume when replacing the container; do not mount the real library for testing.
 - An AMD64 test validates container behavior on this PC; ARM64/Pi validation remains separate.

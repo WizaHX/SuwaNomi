@@ -88,6 +88,15 @@ suspend fun refreshChapterPageList(
     mangaId: Int,
     chapterId: Int,
     existingChapterEntry: ResultRow? = null,
+): Int =
+    suwayomi.tachidesk.manga.impl.migration.MigrationGate.access(mangaId) {
+        refreshChapterPageListWithoutMigrationGuard(mangaId, chapterId, existingChapterEntry)
+    }
+
+private suspend fun refreshChapterPageListWithoutMigrationGuard(
+    mangaId: Int,
+    chapterId: Int,
+    existingChapterEntry: ResultRow? = null,
 ): Int {
     val mutex = mutexByChapterId.get(chapterId) { Mutex() }
     return mutex.withLock {
@@ -139,8 +148,17 @@ suspend fun getChapterDownloadReady(
     chapterIndex: Int? = null,
     mangaId: Int? = null,
 ): ChapterDataClass {
-    val chapter = ChapterForDownload(userId, chapterId, chapterIndex, mangaId)
-    return chapter.asDownloadReady()
+    val resolvedMangaId =
+        mangaId ?: transaction {
+            ChapterTable
+                .selectAll()
+                .where { ChapterTable.id eq requireNotNull(chapterId) }
+                .single()[ChapterTable.manga]
+                .value
+        }
+    return suwayomi.tachidesk.manga.impl.migration.MigrationGate.access(resolvedMangaId) {
+        ChapterForDownload(userId, chapterId, chapterIndex, mangaId).asDownloadReady()
+    }
 }
 
 suspend fun getChapterDownloadReadyById(

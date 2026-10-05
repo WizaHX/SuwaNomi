@@ -162,6 +162,14 @@ object Manga {
         mangaId: Int,
         updateManga: Boolean = true,
         updateChapters: Boolean = true,
+    ) = suwayomi.tachidesk.manga.impl.migration.MigrationGate.access(mangaId) {
+        updateMangaAndChaptersWithoutMigrationGuard(mangaId, updateManga, updateChapters)
+    }
+
+    private suspend fun updateMangaAndChaptersWithoutMigrationGuard(
+        mangaId: Int,
+        updateManga: Boolean,
+        updateChapters: Boolean,
     ) {
         mangaInfoMutex.get(mangaId) { Mutex() }.withLock {
             var mangaEntry =
@@ -431,7 +439,12 @@ object Manga {
         }
     }
 
-    suspend fun fetchMangaThumbnail(mangaId: Int): Pair<InputStream, String> {
+    suspend fun fetchMangaThumbnail(mangaId: Int): Pair<InputStream, String> =
+        suwayomi.tachidesk.manga.impl.migration.MigrationGate.access(mangaId) {
+            fetchMangaThumbnailWithoutMigrationGuard(mangaId)
+        }
+
+    private suspend fun fetchMangaThumbnailWithoutMigrationGuard(mangaId: Int): Pair<InputStream, String> {
         val cacheSaveDir = applicationDirs.tempThumbnailCacheRoot
         val fileName = mangaId.toString()
 

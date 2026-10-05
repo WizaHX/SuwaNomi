@@ -4,7 +4,7 @@ Last updated: 2026-10-05.
 
 ## Current state
 
-- Branch `change-migration`, based on `0f9b54df`. All feature/documentation changes are uncommitted; no push attempted and live remote state is unverified.
+- Branch `change-migration`, HEAD `12edf6f6` (documentation committed). The 11 application/test files are staged and uncommitted; this review updates documentation separately; no push attempted and live remote state is unverified.
 - Imported server baseline: `cff9169a378013f9eba6646ca1de1ae956ea509b`.
 - The owner approved an explicit server-only API accepting original/destination IDs. The unchanged WebUI migration button does not invoke it. See [upstream comparison and request trace](migration-request-trace.md).
 - Minimal upstream changes and unchanged bidirectional backup compatibility are required. Only the highest-read cutoff carries over; old per-chapter history is discarded.
@@ -48,19 +48,19 @@ The explicit API remains; its enablement setting was removed at the owner’s re
 
 ## Validation
 
-- Latest permission change: both `MigrationApiTest` tests and `:server:ktlintCheck` passed. The API test verifies that a user with no special permissions can migrate and an unauthenticated visitor cannot. `git diff --check` passed. The preceding revision passed all 29 migration/API and backup tests; that broader suite was not rerun for this permission-only change. No backup code/schema changes, commits or pushes.
+- Final pre-commit review: all 29 migration/API and upstream backup tests passed together with `:server:ktlintCheck`. Both staged and unstaged `git diff --check` passed. No application changes were needed; corrected stale Docker/handoff documentation only. API coverage includes non-admin access and unauthenticated rejection. Backup schemas/handlers and the settings registry remain unchanged.
 - Updated tests exercise destination ranges 1–45, 15–40 and 35–44 with highest read 30, unread gaps/later unread chapters, per-user cutoffs/no read history, authoritative destination data, disposable-file cleanup, authentication and non-admin access, failure/retry and backup round trips without copied reading dates.
 - Regression coverage now also includes used destinations and migration back, a missing original extension through the API, and actual local-source chapters followed by migration back online with local files intact.
-- Latest validation log: `/tmp/suwanomi-auth-tests.log`; preceding full migration/backup run: `/tmp/suwanomi-no-setting-tests.log`.
+- Latest validation log: `/tmp/suwanomi-final-review-tests.log`.
 - Build setup: `JAVA_HOME=/home/user/.jdks/jbr-21.0.11`, `GRADLE_USER_HOME=/tmp/suwanomi-gradle`, wrapper Gradle 9.7.1; `-Pkotlin.daemon.jvmargs=-Xmx3g --max-workers=2`. No build/dependency version changes.
-- Separate upstream-binary import/export, live extension, Docker/Pi and process-kill tests have not been run. Backup round trips use unchanged upstream protobuf serializers/handlers in this build.
+- User-reported AMD64 Docker/live-source smoke test succeeded: MangaBall → Qiscans under ID 49, destination 75 removed, chapters 1–6 read and 7 unread. API inspection confirmed the source/ID/chapter list, but database/user-state auditing is unfinished. WebView failed due to missing native libraries in the minimal test image. Separate upstream-binary import/export, ARM64/Pi and process-kill tests have not been run. Backup round trips use unchanged upstream protobuf serializers/handlers in this build.
 - Keep backup restore and library synchronization idle during migration; those unchanged upstream operations are not covered by the in-memory guards.
 
 ## Next step
 
-Local Docker testing requested on Linux Mint AMD64. Docker client is installed, but daemon access is blocked: host user is not in the socket’s `docker` group. No container was started. After host access is configured and the session restarted, run a disposable container migration smoke test; see [Docker notes](docker-deployment.md).
+Review the staged migration commit. Remaining behavior choices stay unchanged; no additional application cleanup was justified by this review. Complete the database audit once the owner provides a consistent snapshot, then prepare full Docker packaging with browser dependencies. The owner uses `sudo docker`; do not recommend changing group membership. See [Docker notes](docker-deployment.md).
 
-The owner has deferred decisions on the remaining review items and repeated chapter parsing/name cleanup. Resume that review when requested. A real-extension API smoke test with disposable data remains outstanding; Docker packaging and Pi deployment follow it. No commit/push is implicitly authorized.
+No commit/push is implicitly authorized. The existing WebUI migration button still uses upstream behavior; test this feature through its explicit API.
 
 ## Project and deployment
 

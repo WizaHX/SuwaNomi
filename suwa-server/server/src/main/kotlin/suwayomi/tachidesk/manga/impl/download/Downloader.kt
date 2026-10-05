@@ -166,47 +166,49 @@ class Downloader(
             }
 
             try {
-                download.state = Downloading
-                step(PROGRESS, download, true)
+                suwayomi.tachidesk.manga.impl.migration.MigrationGate.access(download.mangaId) {
+                    download.state = Downloading
+                    step(PROGRESS, download, true)
 
-                val chapter = getChapterDownloadReadyById(0, download.chapterId)
+                    val chapter = getChapterDownloadReadyById(0, download.chapterId)
 
-                if (chapter.pageCount <= 0) {
-                    throw EmptyChapterException()
-                }
+                    if (chapter.pageCount <= 0) {
+                        throw EmptyChapterException()
+                    }
 
-                download.pageCount = chapter.pageCount
+                    download.pageCount = chapter.pageCount
 
-                ChapterDownloadHelper.download(download.mangaId, download.chapterId, download, scope) { downloadChapter, immediate ->
-                    step(PROGRESS, downloadChapter, immediate)
-                }
-                download.state = Finished
-                transaction {
-                    // Mark it as downloaded for those who requested it
-                    val requestingUserIds =
-                        ChapterUserTable
-                            .select(ChapterUserTable.user)
-                            .where {
-                                (ChapterUserTable.chapter eq download.chapterId) and
-                                    (ChapterUserTable.isDownloadRequested eq true)
-                            }.map { it[ChapterUserTable.user].value }
+                    ChapterDownloadHelper.download(download.mangaId, download.chapterId, download, scope) { downloadChapter, immediate ->
+                        step(PROGRESS, downloadChapter, immediate)
+                    }
+                    download.state = Finished
+                    transaction {
+                        // Mark it as downloaded for those who requested it
+                        val requestingUserIds =
+                            ChapterUserTable
+                                .select(ChapterUserTable.user)
+                                .where {
+                                    (ChapterUserTable.chapter eq download.chapterId) and
+                                        (ChapterUserTable.isDownloadRequested eq true)
+                                }.map { it[ChapterUserTable.user].value }
 
-                    if (requestingUserIds.isNotEmpty()) {
-                        ChapterTable.update({ (ChapterTable.id eq download.chapterId) }) {
-                            it[isDownloaded] = true
-                        }
+                        if (requestingUserIds.isNotEmpty()) {
+                            ChapterTable.update({ (ChapterTable.id eq download.chapterId) }) {
+                                it[isDownloaded] = true
+                            }
 
-                        ChapterUserTable.update(
-                            {
-                                (ChapterUserTable.chapter eq download.chapterId) and
-                                    (ChapterUserTable.user inList requestingUserIds)
-                            },
-                        ) {
-                            it[ChapterUserTable.isDownloaded] = true
+                            ChapterUserTable.update(
+                                {
+                                    (ChapterUserTable.chapter eq download.chapterId) and
+                                        (ChapterUserTable.user inList requestingUserIds)
+                                },
+                            ) {
+                                it[ChapterUserTable.isDownloaded] = true
+                            }
                         }
                     }
+                    finishDownload(downloadLogger, download)
                 }
-                finishDownload(downloadLogger, download)
             } catch (e: CancellationException) {
                 downloadLogger.debug { "Downloader was stopped" }
                 availableSourceDownloads.filter { it.state == Downloading }.forEach { it.state = Queued }

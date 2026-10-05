@@ -38,7 +38,11 @@ class ThumbnailFileProvider(
 
     override suspend fun getImage(): RetrieveFile0Args = RetrieveFile0Args(::getImageImpl)
 
-    private suspend fun downloadImpl(): Boolean {
+    private suspend fun downloadImpl(): Boolean =
+        suwayomi.tachidesk.manga.impl.migration.MigrationGate
+            .access(mangaId) { downloadWithoutMigrationGuard() }
+
+    private suspend fun downloadWithoutMigrationGuard(): Boolean {
         val isExistingFile = getFilePath() != null
         if (isExistingFile) {
             return true

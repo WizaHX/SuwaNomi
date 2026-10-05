@@ -62,6 +62,19 @@ object Page {
         chapterId: Int? = null,
         chapterIndex: Int? = null,
         index: Int,
+        progressFlow: (
+            (StateFlow<Int>) -> Unit
+        )? = null,
+    ): Pair<InputStream, String> =
+        suwayomi.tachidesk.manga.impl.migration.MigrationGate.access(mangaId) {
+            getPageImageWithoutMigrationGuard(mangaId, chapterId, chapterIndex, index, progressFlow)
+        }
+
+    private suspend fun getPageImageWithoutMigrationGuard(
+        mangaId: Int,
+        chapterId: Int? = null,
+        chapterIndex: Int? = null,
+        index: Int,
         progressFlow: ((StateFlow<Int>) -> Unit)? = null,
     ): Pair<InputStream, String> {
         val mangaEntry = transaction { MangaTable.selectAll().where { MangaTable.id eq mangaId }.first() }
@@ -79,6 +92,7 @@ object Page {
                         .first()
                 }
             }
+        require(chapterEntry[ChapterTable.manga].value == mangaId) { "Chapter does not belong to this manga" }
         val chapterId = chapterEntry[ChapterTable.id].value
 
         try {
