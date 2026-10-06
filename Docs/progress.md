@@ -1,67 +1,18 @@
-# Project progress
+# Current progress
 
-Last updated: 2026-10-05.
+Updated: 2026-10-06. Branch: `change-migration`; implementation committed as `9bbf966e`. Current documentation cleanup is uncommitted. Live remote state has not been checked.
 
-## Current state
+## Completed
 
-- Branch `change-migration`, HEAD `12edf6f6` (documentation committed). The 11 application/test files are staged and uncommitted; this review updates documentation separately; no push attempted and live remote state is unverified.
-- Imported server baseline: `cff9169a378013f9eba6646ca1de1ae956ea509b`.
-- The owner approved an explicit server-only API accepting original/destination IDs. The unchanged WebUI migration button does not invoke it. See [upstream comparison and request trace](migration-request-trace.md).
-- Minimal upstream changes and unchanged bidirectional backup compatibility are required. Only the highest-read cutoff carries over; old per-chapter history is discarded.
-- Removed the enablement setting and administrator permission requirement as requested. The latest API tests and style checks pass; other pending behavior choices remain unchanged.
+- Server API keeps the original manga ID and personal settings, replaces source data and chapters with the destination, then deletes the destination row. Read status uses each user's highest read chapter number; old chapter history is discarded. No enablement setting or admin requirement; authentication remains. Backup code and schema are unchanged.
+- Invoke `migrateMangaSameId(input: { originalId: 49, destinationId: 75 }) { mangaId }` as a GraphQL mutation. The existing WebUI migration button does not call this API.
+- Final code review passed 29 migration/API and backup tests plus style checks. Log: `/tmp/suwanomi-final-review-tests.log`.
+- Owner's Docker smoke test: MangaBall → Qiscans retained 49 and removed 75; chapters 1–6 read, 7 unread. API confirmed source/IDs and 152 chapters; user-state/database inspection remains unfinished.
 
-## Implemented, uncommitted
+## Remaining
 
-- Explicit client invocation; no migration enablement setting or configuration change is needed.
-- One GraphQL migration command available to any authenticated user. See [API usage](same-id-migration-api.md).
-- Keeps original ID and manga-level personal state; fetches destination content before cleanup; replaces source fields/chapters transactionally and removes the separate destination row, including its personal state. Destinations already in the library or with downloads are allowed.
-- Computes each user's highest original read chapter number. Every destination chapter at/below that cutoff becomes read, including gaps; chapters above stay unread. With no read history, destination chapters stay unread. The destination supplies all names/URLs/metadata. Old chapter bookmarks, reading dates and positions are discarded.
-- Local-source manga are allowed on either side; only the destination must be available. Original extension/site availability is irrelevant. Upstream’s source-or-stub cleanup may leave unresolvable old folders; local content files remain in the separate local directory.
-- In-memory guards prevent overlapping refresh/download writes. Path checks prevent deleting shared/unrelated storage. Files are removed before changing source metadata.
-- On failure the original source/reading state remain, deleted downloads stay deleted, and normal use/retry is available. No persistent locks, journal, recovery endpoints or custom database schema.
-- Main implementation: `suwa-server/server/src/main/kotlin/suwayomi/tachidesk/manga/impl/migration/` and `graphql/mutations/MigrationMutation.kt`.
+- Inspect a consistent test database snapshot for leftovers and confirm user progress; REST inspection did not show the owner's read/library state.
+- Prepare full Docker packaging with WebView dependencies; the minimal image fails loading `libXext.so.6`. See [deployment notes](docker-deployment.md). ARM64/Pi and separate upstream-binary backup round trips remain untested.
+- No further behavior removals are approved. Migration guards/validation and normal destination chapter processing remain. Keep backup restore and library synchronization idle during testing; old folders may remain if a removed extension's directory cannot be resolved.
 
-## Removed complexity
-
-- Removed the migration enablement setting, configuration lookup, service check, and setting-specific test/setup. The administrator permission requirement is also removed; existing authentication remains.
-
-- Latest structural cleanup removed redundant temporary variables and binding-check ID arguments, avoids an intermediate URL list, and removes an unnecessary `suspend` declaration. No behavior or upstream integration changes; 10 fewer production lines.
-
-- Removed the destination personal-state/duplicate-entry validation, local-source prohibition and installed-original-extension requirement (review items 3, 4 and 5).
-- Removed `MigrationChapterMatcher`, all old/new chapter mapping, name/special fallback, per-chapter date/bookmark copying, and matched/discarded-count response fields. The API returns only `mangaId`.
-- Prior simplification removed the journal table/database migration, recovery query, cancel command, persistent locks, redundant wrappers and coroutine lease machinery.
-- Backup schemas, serializers, restore code and ServerConfig registry remain unchanged. Custom logic stays in new migration files with small upstream integration points.
-
-## Remaining review items (original numbering)
-
-| Original item | Remaining addition |
-| --- | --- |
-| 2 | Separate read cutoff for every user |
-| 6 | Always fetch fresh destination details/chapters |
-| 7 | Validate destination content (empty lists, names, URLs and numbers) |
-| 8 | In-memory busy/source/file guards |
-| 9 | Shared-directory and safe-path checks |
-| 10 | Clean destination download/cache paths as well as original paths |
-| 11 | Repeated binding checks and locked atomic replacement |
-
-The explicit API remains; its enablement setting was removed at the owner’s request. Upstream-style chapter parsing/name cleanup is still repeated in the migration service. Items 1 and 3–5 were removed at the owner's request.
-
-## Validation
-
-- Final pre-commit review: all 29 migration/API and upstream backup tests passed together with `:server:ktlintCheck`. Both staged and unstaged `git diff --check` passed. No application changes were needed; corrected stale Docker/handoff documentation only. API coverage includes non-admin access and unauthenticated rejection. Backup schemas/handlers and the settings registry remain unchanged.
-- Updated tests exercise destination ranges 1–45, 15–40 and 35–44 with highest read 30, unread gaps/later unread chapters, per-user cutoffs/no read history, authoritative destination data, disposable-file cleanup, authentication and non-admin access, failure/retry and backup round trips without copied reading dates.
-- Regression coverage now also includes used destinations and migration back, a missing original extension through the API, and actual local-source chapters followed by migration back online with local files intact.
-- Latest validation log: `/tmp/suwanomi-final-review-tests.log`.
-- Build setup: `JAVA_HOME=/home/user/.jdks/jbr-21.0.11`, `GRADLE_USER_HOME=/tmp/suwanomi-gradle`, wrapper Gradle 9.7.1; `-Pkotlin.daemon.jvmargs=-Xmx3g --max-workers=2`. No build/dependency version changes.
-- User-reported AMD64 Docker/live-source smoke test succeeded: MangaBall → Qiscans under ID 49, destination 75 removed, chapters 1–6 read and 7 unread. API inspection confirmed the source/ID/chapter list, but database/user-state auditing is unfinished. WebView failed due to missing native libraries in the minimal test image. Separate upstream-binary import/export, ARM64/Pi and process-kill tests have not been run. Backup round trips use unchanged upstream protobuf serializers/handlers in this build.
-- Keep backup restore and library synchronization idle during migration; those unchanged upstream operations are not covered by the in-memory guards.
-
-## Next step
-
-Review the staged migration commit. Remaining behavior choices stay unchanged; no additional application cleanup was justified by this review. Complete the database audit once the owner provides a consistent snapshot, then prepare full Docker packaging with browser dependencies. The owner uses `sudo docker`; do not recommend changing group membership. See [Docker notes](docker-deployment.md).
-
-No commit/push is implicitly authorized. The existing WebUI migration button still uses upstream behavior; test this feature through its explicit API.
-
-## Project and deployment
-
-[Repository setup](repository-setup.md), [migration requirements](same-id-migration-plan.md), [Docker deployment](docker-deployment.md). Hardware: Raspberry Pi 4 Model B, reported 64-bit OS; expected `linux/arm64`, on-device verification pending.
+Builds use Java 21 (`/home/user/.jdks/jbr-21.0.11`), `GRADLE_USER_HOME=/tmp/suwanomi-gradle`, and `-Pkotlin.daemon.jvmargs=-Xmx3g --max-workers=2`, from `suwa-server/`. No commit or push is authorized by a handoff entry.

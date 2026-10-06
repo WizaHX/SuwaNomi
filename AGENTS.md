@@ -10,19 +10,18 @@ SuwaNomi is a personal customization of Suwayomi-Server, intended to run through
 - Read `Docs/progress.md` before starting work for the current state, evidence, and next steps. Verify its Git observations against the live checkout.
 - Read `Docs/repository-setup.md` for repository layout and upstream update procedures.
 - Read `Docs/docker-deployment.md` for deployment decisions.
-- For migration work, read `Docs/same-id-migration-plan.md`. Keep feature-specific requirements there rather than duplicating them here.
 
 ## Scope and workflow
 
 - Match the requested scope. Planning or inspection requests do not authorize application implementation.
 - Inspect relevant code before choosing a design. Distinguish verified behavior from assumptions and unresolved decisions.
 - Make focused changes using existing conventions; avoid unrelated refactoring, dependency upgrades, and formatting churn. Minimize the upstream diff and isolate custom behavior so future upstream merges remain manageable.
-- Preserve bidirectional upstream backup compatibility: upstream → SuwaNomi → upstream → SuwaNomi. Do not change backup schemas, serializers, or restore behavior, add custom backup fields, or encode custom data in fake chapter records. Exclude custom settings from backups. Verify backup round trips in both directions. The migration feature retains only the highest-read cutoff and discards old per-chapter history; do not reintroduce a custom history archive.
-- This is a server customization. Do not introduce a separate WebUI/site project or require a custom WebUI build for the planned migration feature.
+- Preserve backup compatibility in both directions with upstream. Keep backup schemas, serializers and restore behavior unchanged.
+- Keep work scoped to this server repository unless the owner requests client changes.
 - Proceed with routine, reversible work within the request. Ask only when missing information materially blocks the work or changes its scope.
-- Keep documentation current: repository notes, deployment notes, and feature plans belong in their respective documents.
+- Keep documentation current: keep repository and deployment notes in their respective documents, and current task status in `Docs/progress.md`.
 - Update `Docs/progress.md` after meaningful milestones and before ending a work session. Record completed and unfinished work, validation results, blockers, and the exact next step. Include relevant file paths or commit hashes as evidence; distinguish uncommitted changes from commits and local commits from verified pushes.
-- Keep the progress file a concise current handoff, not a transcript. Replace stale state, retain useful findings, and link to plans for requirements and design decisions. A next-step entry is not authorization beyond the user's request.
+- Keep the progress file a concise current handoff, not a transcript. Replace stale state, retain only the findings needed to resume the current task. A next-step entry is not authorization beyond the user's request.
 - Report what changed, what was checked, and any remaining limitations. Never claim unrun tests passed.
 
 ## Git and imported source
@@ -43,6 +42,6 @@ SuwaNomi is a personal customization of Suwayomi-Server, intended to run through
   - `./gradlew :server:shadowJar` for the server artifact.
 - Choose checks appropriate to the change. Documentation-only edits need link/content review and `git diff --check`, not an application build.
 - Kotlin compilation currently depends on `ktlintFormat`; inspect the diff after builds for incidental formatting changes and keep unrelated changes out of the result.
-- Use disposable databases, storage directories, and containers for migration or destructive-path testing. Never test cleanup against the real library.
+- Use disposable databases, storage directories, and containers for destructive-path testing. Never test cleanup against the real library.
 - Keep secrets, tokens, personal configuration, databases, downloads, and generated build artifacts out of Git.
 - Inspect the final diff before reporting completion. Leave application code unchanged when the task only concerns documentation.
