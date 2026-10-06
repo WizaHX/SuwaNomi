@@ -379,9 +379,7 @@ export class MigrationManager {
     private static async awaitUserConfirmation(): Promise<void> {
         await Confirmation.show({
             title: t`Migration information`,
-            message: AppSession.isSecureContext()
-                ? t`The migration runs on the client on the current device, NOT the server.\nAs long as the client is open, the migration will run in the background.\nThe client can be closed. The migration will be resumed once it gets opened again on the same device it got started on.`
-                : t`WebUI must be kept open. Migration can't be resumed`,
+            message: t`Keep the WebUI open while searches and migrations are queued. A migration already sent to the server can finish even if you close this page.`,
             actions: {
                 confirm: {
                     title: t`Understood`,

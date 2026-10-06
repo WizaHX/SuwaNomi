@@ -139,20 +139,20 @@ export const MangaCard = memo((props: MangaCardProps) => {
                                 optionsDialog.update({ isMigrating: true });
 
                                 try {
-                                    try {
-                                        await MangaMigration.migrateByIdWithFetch(migrationSourceMangaId, id, options);
-                                    } catch (e) {
-                                        makeToast(
-                                            t(MANGA_ACTION_TO_TRANSLATION['migrate'].error),
-                                            'error',
-                                            getErrorMessage(e),
-                                        );
-                                    }
+                                    await MangaMigration.migrateByIdWithFetch(migrationSourceMangaId, id, options);
                                     optionsDialog.submit(options);
 
-                                    ReactRouter.navigate(AppRoutes.manga.path(id), { replace: true });
+                                    ReactRouter.navigate(
+                                        AppRoutes.manga.path(options.mode === 'migrate' ? migrationSourceMangaId : id),
+                                        { replace: true },
+                                    );
                                 } catch (e) {
-                                    optionsDialog.update({ isMigrating: false, startMigration: () => migrate() });
+                                    makeToast(
+                                        t(MANGA_ACTION_TO_TRANSLATION['migrate'].error),
+                                        'error',
+                                        getErrorMessage(e),
+                                    );
+                                    optionsDialog.update({ isMigrating: false });
                                 }
                             },
                         },

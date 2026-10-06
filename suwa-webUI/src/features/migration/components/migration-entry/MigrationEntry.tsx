@@ -219,8 +219,20 @@ export const MigrationEntry = memo(
             const match = entry.searchMatches.find((matchEntry) => matchEntry.id === entry.selectedMatchMangaId);
             const manualMatch = entry.manualMatches.find((matchEntry) => matchEntry.id === entry.selectedMatchMangaId);
 
-            return match ?? manualMatch;
-        }, [entry.searchMatches, entry.selectedMatchMangaId]);
+            const destination = match ?? manualMatch;
+            if (
+                destination &&
+                entry.status === MigrationEntryStatus.MIGRATION_COMPLETE &&
+                MigrationManager.getState().migrateOptions?.mode === 'migrate'
+            ) {
+                return {
+                    ...destination,
+                    id: entry.mangaId,
+                    thumbnailUrl: `/api/v1/manga/${entry.mangaId}/thumbnail`,
+                };
+            }
+            return destination;
+        }, [entry.searchMatches, entry.manualMatches, entry.selectedMatchMangaId, entry.status, entry.mangaId]);
         const otherMatches = useMemo(
             () =>
                 [...entry.searchMatches, ...entry.manualMatches]

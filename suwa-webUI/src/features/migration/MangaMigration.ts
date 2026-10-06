@@ -6,6 +6,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import gql from 'graphql-tag';
+import type { InMemoryCache } from '@apollo/client';
 import { requestManager } from '@/lib/requests/RequestManager.ts';
 import type { SetChapterMetasItemInput } from '@/lib/graphql/generated/graphql-base.types.ts';
 import type { MangaIdInfo } from '@/features/manga/Manga.types.ts';
@@ -24,7 +26,44 @@ import { getMetadataServerSettings } from '@/features/settings/services/ServerSe
 import { t } from '@lingui/core/macro';
 import { makeToast } from '@/base/utils/Toast.ts';
 
+const MIGRATE_MANGA_SAME_ID = gql`
+    mutation MigrateMangaSameId($originalId: Int!, $destinationId: Int!) {
+        migrateMangaSameId(input: { originalId: $originalId, destinationId: $destinationId }) {
+            mangaId
+        }
+    }
+`;
+
 export class MangaMigration {
+    private static async migrateSameId(originalId: number, destinationId: number): Promise<void> {
+        const { client } = requestManager.graphQLClient;
+        await client.mutate({
+            mutation: MIGRATE_MANGA_SAME_ID,
+            variables: { originalId, destinationId },
+            errorPolicy: 'none',
+        });
+
+        client.cache.batch({
+            update(cache) {
+                for (const mangaId of [originalId, destinationId]) {
+                    cache.evict({ id: cache.identify({ __typename: 'MangaType', id: mangaId }) });
+                }
+                for (const [id, value] of Object.entries((cache as InMemoryCache).extract())) {
+                    if (
+                        value?.__typename === 'ChapterType' &&
+                        [originalId, destinationId].includes(Number(value.mangaId))
+                    ) {
+                        cache.evict({ id });
+                    }
+                }
+                for (const fieldName of ['manga', 'mangas', 'chapters', 'categories']) {
+                    cache.evict({ fieldName });
+                }
+            },
+        });
+        client.cache.gc();
+    }
+
     static async migrate(
         mangaToMigrate: MangaToMigrate | null | undefined,
         mangaToMigrateTo: MangaToMigrateTo | null | undefined,
@@ -102,6 +141,10 @@ export class MangaMigration {
         mangaIdToMigrateTo: number,
         options: Omit<MigrateOptions, 'mangaIdToMigrateTo'>,
     ): Promise<void> {
+        if (options.mode === 'migrate') {
+            return MangaMigration.migrateSameId(mangaId, mangaIdToMigrateTo);
+        }
+
         const { migrateChapters, migrateCategories, migrateTracking, deleteChapters, migrateMetadata } = options;
 
         const [{ data: mangaToMigrateData }, { data: mangaToMigrateToData }, { removeMangaFromCategories }] =
@@ -137,6 +180,10 @@ export class MangaMigration {
         mangaIdToMigrateTo: number,
         options: Omit<MigrateOptions, 'mangaIdToMigrateTo'>,
     ): Promise<void> {
+        if (options.mode === 'migrate') {
+            return MangaMigration.migrateSameId(mangaId, mangaIdToMigrateTo);
+        }
+
         const { migrateChapters, migrateCategories, migrateTracking, deleteChapters, migrateMetadata } = options;
 
         const [{ data: mangaToMigrateData }, { data: mangaToMigrateToData }, { removeMangaFromCategories }] =
