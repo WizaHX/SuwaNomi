@@ -1,0 +1,15 @@
+services:
+  suwanomi:
+    image: ${SUWANOMI_IMAGE:-ghcr.io/wizahx/suwanomi:latest}
+    restart: unless-stopped
+    ports:
+      - "${SUWANOMI_BIND_IP:-0.0.0.0}:${SUWANOMI_PORT:-4567}:4567"
+    environment:
+      BIND_IP: 0.0.0.0
+      BIND_PORT: 4567
+    volumes:
+      - suwanomi-data:/home/suwayomi/.local/share/Tachidesk
+    stop_grace_period: 60s
+
+volumes:
+  suwanomi-data:

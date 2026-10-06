@@ -1,3 +1,6 @@
 # Local agent configuration
 .agents/
 .codex/
+
+# Local container build output
+.docker-build/

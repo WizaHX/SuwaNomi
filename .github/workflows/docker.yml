@@ -1,0 +1,103 @@
+name: Build and publish Docker image
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.20.0'
+      - run: npm install --global pnpm@11.1.2
+      - name: Build server and WebUI
+        run: sh docker/build-artifacts.sh
+      - uses: docker/setup-buildx-action@v4.4.1
+      - name: Build AMD64 test image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: suwanomi:smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test server and bundled client
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'docker logs suwanomi-smoke; docker rm -f suwanomi-smoke' EXIT
+          docker run -d --name suwanomi-smoke \
+            -p 127.0.0.1:4567:4567 \
+            --tmpfs /home/suwayomi/.local/share/Tachidesk:uid=1000,gid=1000,mode=0700 \
+            -e BIND_IP=0.0.0.0 -e BIND_PORT=4567 suwanomi:smoke
+          ready=false
+          for attempt in {1..90}; do
+            if curl --fail --silent http://127.0.0.1:4567/ > /tmp/suwanomi-index.html; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          "$ready"
+          grep -q '<html' /tmp/suwanomi-index.html
+          curl --fail --silent --show-error http://127.0.0.1:4567/api/graphql \
+            -H 'Content-Type: application/json' \
+            --data '{"query":"{ aboutWebUI { tag } }"}' \
+            | jq -e '(.errors == null) and (.data.aboutWebUI.tag | startswith("r"))'
+          curl --fail --silent --show-error http://127.0.0.1:4567/api/graphql \
+            -H 'Content-Type: application/json' \
+            --data '{"query":"{ __schema { mutationType { fields { name } } } }"}' \
+            | jq -e '.data.__schema.mutationType.fields | any(.name == "migrateMangaSameId")'
+          docker exec suwanomi-smoke cmp /opt/suwanomi/webui/index.html \
+            /home/suwayomi/.local/share/Tachidesk/webUI/index.html
+      - name: Image name
+        id: image
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: echo "name=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v6.2.0
+        id: meta
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+      - name: Publish AMD64 and ARM64
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: SOURCE_URL=https://github.com/${{ github.repository }}
+          cache-from: type=gha
