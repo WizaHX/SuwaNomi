@@ -1,8 +1,10 @@
 # Current progress
 
-Updated: 2026-10-06. Branch: `change-migration`; WebUI integration committed as `a48ce5c9d`; Docker/GHCR setup committed locally as `c6805271e`; migration UI fixes are included with this handoff update. Nothing pushed in this session; live remote state has not been checked.
+Updated: 2026-10-06. Branch: `change-migration`; WebUI integration committed as `a48ce5c9d`; Docker/GHCR setup committed locally as `c6805271e`; migration UI fixes committed locally as `54f241aef`; the browse-cache fix is included with this handoff commit. Nothing pushed in this session; live remote state has not been checked.
 
 ## Completed
+
+- Fixed stale migration destinations in `MangaMigration.ts`: successful API migration now clears the existing source browse/search cache as well as Apollo. `useGetSourceMangas` otherwise falls back to raw cached records after Apollo eviction. Two-line application change; no server/backup changes. Regression harness reproduced the old failure and passed six alternating migrations with the actual cache code and a simulated server; failure/cache-preservation and existing copy/API checks passed. TypeScript, focused lint/format and production build passed. Updated UI staged in `.docker-build/webui`; owner verified repeated single-manga migrations in both directions in Docker. Harness: `/tmp/suwanomi-search-cache-check.cjs`; build log: `/tmp/suwanomi-webui-cache-build.log`.
 
 - Owner confirmed WebView opens and loads pages; cookie sharing is not yet verified. Removed the location-specific timezone default from Compose.
 - Prepared Dockerfile, Compose, build/start scripts and a manual/version-tag GHCR workflow for AMD64/ARM64. Uses the pinned upstream runtime plus our server and client; no publication attempted. Workflow lint, Compose/shell checks and isolated UI-install/persistence checks passed. See [deployment notes](docker-deployment.md).
@@ -16,12 +18,12 @@ Updated: 2026-10-06. Branch: `change-migration`; WebUI integration committed as 
 
 - Fixed raw translation IDs in the migration dialog/bulk notice by keeping the three custom messages as plain English. TypeScript, focused lint and production build passed; all three texts verified in staged production JavaScript. Updated production assets staged for Docker builds.
 
-- Fixed missing original ID when selecting a migration destination from a source’s full results page: MangaCard now reads navigation-state mangaId when the URL has none. Callback regression checks passed for URL/state/precedence, along with TypeScript, focused lint and production build. Updated assets staged. Repeated round trips exposed a separate stale destination-ID problem described below.
+- Fixed missing original ID when selecting a migration destination from a source’s full results page: MangaCard now reads navigation-state mangaId when the URL has none. Callback regression checks passed for URL/state/precedence, along with TypeScript, focused lint and production build. Updated assets staged. Repeated round trips exposed a separate stale destination-ID problem, now fixed and verified above.
 
 ## Remaining
 
 - Owner confirmed the packaged WebUI loads after adding its missing `revision` file. Its update checker then tried an invalid URL for Custom mode. Client background/About checks now skip Custom mode and About hides its update controls. TypeScript, focused lint and production build passed; updated assets are staged in `.docker-build/webui`. Rebuild/recreate and refresh the browser to verify no update-check errors; existing test data can be retained.
-- Next: trace stale destination IDs during repeated migrations. Owner reports retained library ID 49, deleted MangaBall destination 165 reused by a later search result, and success after a fresh source lookup created 197. Inspect client/server search caches before changing deletion behavior; keeping duplicate records is not approved. Also verify WebView cookie sharing and persistence across container recreation.
+- Batch migration has not been tested end to end; owner explicitly deferred it because they do not use it. WebView cookie sharing and persistence across container recreation remain unverified.
 - Inspect a fresh test database snapshot for leftovers and confirm user progress; the earlier test volume was removed during cleanup.
 - After committing/merging packaging, run the GitHub workflow to publish. Keep GHCR private initially; package visibility must be changed separately when making it public. ARM64/Pi and separate upstream-binary backup round trips remain untested.
 - No further behavior removals are approved. Migration guards/validation and normal destination chapter processing remain. Keep backup restore and library synchronization idle during testing; old folders may remain if a removed extension's directory cannot be resolved.
