@@ -4,6 +4,7 @@ Personal Suwayomi customization project, focused on running the server in Docker
 
 - `Docs/`: project notes and current progress.
 - `suwa-server/`: Suwayomi-Server imported as a Git subtree with upstream history preserved.
+- `suwa-webUI/`: Suwayomi-WebUI imported the same way.
 
 ## Documentation
 
@@ -13,4 +14,4 @@ Personal Suwayomi customization project, focused on running the server in Docker
 
 ## License
 
-The imported server retains its upstream license and copyright notices; see `suwa-server/LICENSE`.
+Both imported projects retain their upstream licenses and copyright notices; see `suwa-server/LICENSE` and `suwa-webUI/LICENSE`.
