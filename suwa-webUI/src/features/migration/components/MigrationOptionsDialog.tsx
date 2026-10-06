@@ -9,6 +9,8 @@
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import FormLabel from '@mui/material/FormLabel';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import FormGroup from '@mui/material/FormGroup';
@@ -43,14 +45,13 @@ export const MigrationOptionsDialog = ({
     const { t } = useLingui();
 
     const {
-        settings: { migrateChapters, migrateCategories, migrateTracking, deleteChapters, migrateMetadata },
+        settings: { migrateChapters, migrateCategories, migrateTracking, migrateMetadata },
     } = useMetadataServerSettings();
 
     const options: Omit<MigrateOptions, 'mangaIdToMigrateTo' | 'mode'> = {
         migrateChapters,
         migrateCategories,
         migrateTracking,
-        deleteChapters,
         migrateMetadata,
     };
 
@@ -62,7 +63,11 @@ export const MigrationOptionsDialog = ({
         <Dialog open={isVisible} fullWidth onClose={onDismiss} onTransitionExited={onExitComplete}>
             <DialogTitle>{t`Migration options`}</DialogTitle>
             <DialogContent dividers>
+                <DialogContentText sx={{ mb: 2 }}>
+                    {t`Migrate keeps the original entry, categories, tracking and settings. The new source replaces all chapters; chapters up to your highest read number stay read. Downloads and old chapter history are removed. The selected destination entry and its separate library data are removed.`}
+                </DialogContentText>
                 <FormGroup>
+                    <FormLabel>{t`Copy options (do not affect migration)`}</FormLabel>
                     <CheckboxInput
                         disabled={isMigrating}
                         label={t`Chapter`}
@@ -86,12 +91,6 @@ export const MigrationOptionsDialog = ({
                         label={t`Client data`}
                         checked={migrateMetadata}
                         onChange={(_, checked) => setMigrationFlag('migrateMetadata', checked)}
-                    />
-                    <CheckboxInput
-                        disabled={isMigrating}
-                        label={t`Delete downloaded`}
-                        checked={deleteChapters}
-                        onChange={(_, checked) => setMigrationFlag('deleteChapters', checked)}
                     />
                 </FormGroup>
             </DialogContent>
@@ -126,7 +125,7 @@ export const MigrationOptionsDialog = ({
                         <Button
                             disabled={isMigrating}
                             variant="contained"
-                            onClick={() => startMigration({ ...options, mode: 'migrate' })}
+                            onClick={() => startMigration({ mode: 'migrate' })}
                         >
                             {t`Migrate`}
                         </Button>
