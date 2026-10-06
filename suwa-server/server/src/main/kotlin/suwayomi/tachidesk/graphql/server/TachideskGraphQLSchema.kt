@@ -32,6 +32,7 @@ import suwayomi.tachidesk.graphql.mutations.InfoMutation
 import suwayomi.tachidesk.graphql.mutations.KoreaderSyncMutation
 import suwayomi.tachidesk.graphql.mutations.MangaMutation
 import suwayomi.tachidesk.graphql.mutations.MetaMutation
+import suwayomi.tachidesk.graphql.mutations.MigrationMutation
 import suwayomi.tachidesk.graphql.mutations.SettingsMutation
 import suwayomi.tachidesk.graphql.mutations.SourceMutation
 import suwayomi.tachidesk.graphql.mutations.SyncMutation
@@ -139,6 +140,7 @@ object GraphQLSchemaProvider {
                         TopLevelObject(InfoMutation()),
                         TopLevelObject(KoreaderSyncMutation()),
                         TopLevelObject(MangaMutation()),
+                        TopLevelObject(MigrationMutation()),
                         TopLevelObject(MetaMutation()),
                         TopLevelObject(SettingsMutation()),
                         TopLevelObject(SyncMutation()),

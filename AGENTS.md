@@ -10,29 +10,31 @@ SuwaNomi is a personal customization of Suwayomi-Server, intended to run through
 - Read `Docs/progress.md` before starting work for the current state, evidence, and next steps. Verify its Git observations against the live checkout.
 - Read `Docs/repository-setup.md` for repository layout and upstream update procedures.
 - Read `Docs/docker-deployment.md` for deployment decisions.
-- For migration work, read `Docs/same-id-migration-plan.md`. Keep feature-specific requirements there rather than duplicating them here.
 
 ## Scope and workflow
 
 - Match the requested scope. Planning or inspection requests do not authorize application implementation.
 - Inspect relevant code before choosing a design. Distinguish verified behavior from assumptions and unresolved decisions.
-- Make focused changes using existing conventions; avoid unrelated refactoring, dependency upgrades, and formatting churn.
-- This is a server customization. Do not introduce a separate WebUI/site project or require a custom WebUI build for the planned migration feature.
+- Make focused changes using existing conventions; avoid unrelated refactoring, dependency upgrades, and formatting churn. Minimize the upstream diff and isolate custom behavior so future upstream merges remain manageable.
+- Preserve backup compatibility in both directions with upstream. Keep backup schemas, serializers and restore behavior unchanged.
+- Server code lives in `suwa-server/`; client code lives in `suwa-webUI/`. Change only the parts needed for the current request.
 - Proceed with routine, reversible work within the request. Ask only when missing information materially blocks the work or changes its scope.
-- Keep documentation current: repository notes, deployment notes, and feature plans belong in their respective documents.
+- Keep documentation current: keep repository and deployment notes in their respective documents, and current task status in `Docs/progress.md`.
 - Update `Docs/progress.md` after meaningful milestones and before ending a work session. Record completed and unfinished work, validation results, blockers, and the exact next step. Include relevant file paths or commit hashes as evidence; distinguish uncommitted changes from commits and local commits from verified pushes.
-- Keep the progress file a concise current handoff, not a transcript. Replace stale state, retain useful findings, and link to plans for requirements and design decisions. A next-step entry is not authorization beyond the user's request.
+- Keep the progress file a concise current handoff, not a transcript. Replace stale state, retain only the findings needed to resume the current task. A next-step entry is not authorization beyond the user's request.
 - Report what changed, what was checked, and any remaining limitations. Never claim unrun tests passed.
 
 ## Git and imported source
 
 - Run `git status` before editing. Preserve existing user changes and check the current branch rather than assuming `main`.
-- `suwa-server/` is a Git subtree, not a separate repository or submodule. Work from the top-level repository and preserve upstream history and license notices.
+- `suwa-server/` and `suwa-webUI/` are Git subtrees, not separate repositories or submodules. Work from the top-level repository and preserve upstream history and license notices.
 - Do not pull upstream, rewrite history, change remotes, commit, push, or publish as an incidental part of another task. Do so when requested or included in the agreed workflow.
 - Local remote-tracking refs do not prove current GitHub state. Verify remote state when needed and report authentication failures accurately.
 - Upstream contribution instructions about contacting maintainers or opening upstream PRs are not required for this personal project.
 
 ## Implementation and validation
+
+- For WebUI work, read `suwa-webUI/BUILDING.md` and its `package.json`; run client commands from `suwa-webUI/`.
 
 - Run Gradle commands from `suwa-server/` using its wrapper. Check the current build files and CI for the required Java version; older prose documentation may be stale.
 - Useful existing commands:
@@ -42,6 +44,6 @@ SuwaNomi is a personal customization of Suwayomi-Server, intended to run through
   - `./gradlew :server:shadowJar` for the server artifact.
 - Choose checks appropriate to the change. Documentation-only edits need link/content review and `git diff --check`, not an application build.
 - Kotlin compilation currently depends on `ktlintFormat`; inspect the diff after builds for incidental formatting changes and keep unrelated changes out of the result.
-- Use disposable databases, storage directories, and containers for migration or destructive-path testing. Never test cleanup against the real library.
+- Use disposable databases, storage directories, and containers for destructive-path testing. Never test cleanup against the real library.
 - Keep secrets, tokens, personal configuration, databases, downloads, and generated build artifacts out of Git.
 - Inspect the final diff before reporting completion. Leave application code unchanged when the task only concerns documentation.
