@@ -1,11 +1,12 @@
 # Current progress
 
-Updated: 2026-10-06. Branch: `change-migration`; WebUI integration committed as `a48ce5c9d`; Docker/GHCR setup committed locally as `c6805271e`; migration UI fixes committed locally as `54f241aef`; the browse-cache fix is included with this handoff commit. Nothing pushed in this session; live remote state has not been checked.
+Updated: 2026-10-06. Branch: `work-and-experiment`; WebUI integration committed as `a48ce5c9d`; Docker/GHCR setup committed locally as `c6805271e`; migration UI fixes committed locally as `54f241aef`; browse-cache fix committed as `d349f6081`; current checkout includes merge `0231e91c0`. Nothing pushed in this session; live remote state has not been checked.
 
 ## Completed
 
 - Fixed stale migration destinations in `MangaMigration.ts`: successful API migration now clears the existing source browse/search cache as well as Apollo. `useGetSourceMangas` otherwise falls back to raw cached records after Apollo eviction. Two-line application change; no server/backup changes. Regression harness reproduced the old failure and passed six alternating migrations with the actual cache code and a simulated server; failure/cache-preservation and existing copy/API checks passed. TypeScript, focused lint/format and production build passed. Updated UI staged in `.docker-build/webui`; owner verified repeated single-manga migrations in both directions in Docker. Harness: `/tmp/suwanomi-search-cache-check.cjs`; build log: `/tmp/suwanomi-webui-cache-build.log`.
 
+- Owner confirmed downloaded chapter files are deleted on migration.
 - Owner confirmed WebView opens and loads pages; cookie sharing is not yet verified. Removed the location-specific timezone default from Compose.
 - Prepared Dockerfile, Compose, build/start scripts and a manual/version-tag GHCR workflow for AMD64/ARM64. Uses the pinned upstream runtime plus our server and client; no publication attempted. Workflow lint, Compose/shell checks and isolated UI-install/persistence checks passed. See [deployment notes](docker-deployment.md).
 
@@ -24,8 +25,8 @@ Updated: 2026-10-06. Branch: `change-migration`; WebUI integration committed as 
 
 - Owner confirmed the packaged WebUI loads after adding its missing `revision` file. Its update checker then tried an invalid URL for Custom mode. Client background/About checks now skip Custom mode and About hides its update controls. TypeScript, focused lint and production build passed; updated assets are staged in `.docker-build/webui`. Rebuild/recreate and refresh the browser to verify no update-check errors; existing test data can be retained.
 - Batch migration has not been tested end to end; owner explicitly deferred it because they do not use it. WebView cookie sharing and persistence across container recreation remain unverified.
-- Inspect a fresh test database snapshot for leftovers and confirm user progress; the earlier test volume was removed during cleanup.
-- After committing/merging packaging, run the GitHub workflow to publish. Keep GHCR private initially; package visibility must be changed separately when making it public. ARM64/Pi and separate upstream-binary backup round trips remain untested.
+- Copied test H2 database inspected read-only: 27 foreign-key relationships, zero orphan rows, zero duplicate manga source/URL pairs. Library manga 49 is QiScans with 153 chapters: 1–34 read, 35–153 unread; no duplicate chapter URLs, downloads or page records. Manga Ball entry 230 has 312 chapters and no library/user chapter state, consistent with a separately fetched source entry. No categories/trackers are present on 49, so preservation of those cannot be proven from this snapshot. Disk files and before/after growth were not audited. Local results: `/tmp/suwanomi-db-audit/results.txt`; database stays outside Git.
+- After committing/merging packaging, run the GitHub workflow to publish. Owner will make the repository public before publication; set the GHCR package to Public after first publication for anonymous pulls. Private pull/login/PAT instructions were removed; workflow publishing still uses the built-in token. ARM64/Pi and separate upstream-binary backup round trips remain untested.
 - No further behavior removals are approved. Migration guards/validation and normal destination chapter processing remain. Keep backup restore and library synchronization idle during testing; old folders may remain if a removed extension's directory cannot be resolved.
 
 Builds use Java 21 (`/home/user/.jdks/jbr-21.0.11`), `GRADLE_USER_HOME=/tmp/suwanomi-gradle`, and `-Pkotlin.daemon.jvmargs=-Xmx3g --max-workers=2`, from `suwa-server/`. No commit or push is authorized by a handoff entry.
