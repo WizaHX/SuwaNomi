@@ -1,0 +1,6 @@
+**
+!Dockerfile
+!.docker-build/
+!.docker-build/**
+!docker/
+!docker/start.sh

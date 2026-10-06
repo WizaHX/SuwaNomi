@@ -379,7 +379,8 @@ export class MigrationManager {
     private static async awaitUserConfirmation(): Promise<void> {
         await Confirmation.show({
             title: t`Migration information`,
-            message: t`Keep the WebUI open while searches and migrations are queued. A migration already sent to the server can finish even if you close this page.`,
+            message:
+                'Keep the WebUI open while searches and migrations are queued. A migration already sent to the server can finish even if you close this page.',
             actions: {
                 confirm: {
                     title: t`Understood`,

@@ -43,6 +43,8 @@ export class MangaMigration {
             errorPolicy: 'none',
         });
 
+        // Source results also cache raw manga IDs outside Apollo.
+        requestManager.clearBrowseCacheFor('');
         client.cache.batch({
             update(cache) {
                 for (const mangaId of [originalId, destinationId]) {

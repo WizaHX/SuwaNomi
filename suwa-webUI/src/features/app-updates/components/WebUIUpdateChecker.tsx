@@ -16,7 +16,7 @@ import Button from '@mui/material/Button';
 import { useLingui } from '@lingui/react/macro';
 import { defaultPromiseErrorHandler } from '@/lib/DefaultPromiseErrorHandler.ts';
 import type { WebUiUpdateStatus } from '@/lib/graphql/generated/graphql-base.types.ts';
-import { UpdateState, WebUiChannel } from '@/lib/graphql/generated/graphql-base.types.ts';
+import { UpdateState, WebUiChannel, WebUiFlavor } from '@/lib/graphql/generated/graphql-base.types.ts';
 import { useLocalStorage } from '@/base/hooks/useStorage.tsx';
 import { requestManager } from '@/lib/requests/RequestManager.ts';
 import { makeToast } from '@/base/utils/Toast.ts';
@@ -43,7 +43,11 @@ export const WebUIUpdateChecker = () => {
     const serverSettings = requestManager.useGetServerSettings();
     const isAutoUpdateEnabled = !!serverSettings.data?.settings.webUIUpdateCheckInterval;
 
-    const shouldCheckForUpdate = !isAutoUpdateEnabled && webUIInformAvailableUpdate;
+    const shouldCheckForUpdate =
+        !!serverSettings.data &&
+        serverSettings.data.settings.webUIFlavor !== WebUiFlavor.Custom &&
+        !isAutoUpdateEnabled &&
+        webUIInformAvailableUpdate;
 
     const { data: aboutData } = requestManager.useGetAbout();
     const { aboutWebUI } = aboutData ?? STABLE_EMPTY_OBJECT;

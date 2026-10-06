@@ -15,7 +15,7 @@ import { useLingui } from '@lingui/react/macro';
 import { requestManager } from '@/lib/requests/RequestManager.ts';
 import { ListItemLink } from '@/base/components/lists/ListItemLink.tsx';
 import { LoadingPlaceholder } from '@/base/components/feedback/LoadingPlaceholder.tsx';
-import { UpdateState } from '@/lib/graphql/generated/graphql-base.types.ts';
+import { UpdateState, WebUiFlavor } from '@/lib/graphql/generated/graphql-base.types.ts';
 import { defaultPromiseErrorHandler } from '@/lib/DefaultPromiseErrorHandler.ts';
 import { EmptyViewAbsoluteCentered } from '@/base/components/feedback/EmptyViewAbsoluteCentered.tsx';
 import { VersionInfo } from '@/features/app-updates/components/VersionInfo.tsx';
@@ -31,6 +31,9 @@ export function About() {
     useAppTitle(t`About`);
 
     const { data, loading, error, refetch } = requestManager.useGetAbout();
+    const serverSettings = requestManager.useGetServerSettings();
+    const canCheckWebUIUpdates =
+        !!serverSettings.data && serverSettings.data.settings.webUIFlavor !== WebUiFlavor.Custom;
 
     const {
         data: serverUpdateCheckData,
@@ -43,7 +46,7 @@ export function About() {
         loading: isCheckingForWebUIUpdate,
         refetch: checkForWebUIUpdate,
         error: orgWebUIUpdateCheckError,
-    } = requestManager.useCheckForWebUIUpdate();
+    } = requestManager.useCheckForWebUIUpdate({ skip: !canCheckWebUIUpdates });
     const webUIUpdateCheckError = orgWebUIUpdateCheckError || webUIUpdateData?.checkForWebUIUpdate.tag === '';
 
     const { data: webUIUpdateStatusData } = requestManager.useGetWebUIUpdateStatus();
@@ -126,20 +129,24 @@ export function About() {
                     <ListItemText
                         primary={t`WebUI version`}
                         secondary={
-                            <VersionInfo
-                                version={aboutWebUI.tag}
-                                isCheckingForUpdate={isCheckingForWebUIUpdate}
-                                isUpdateAvailable={isWebUIUpdateAvailable}
-                                updateCheckError={webUIUpdateCheckError}
-                                checkForUpdate={checkForWebUIUpdate}
-                                triggerUpdate={() =>
-                                    requestManager
-                                        .updateWebUI()
-                                        .response.catch(defaultPromiseErrorHandler('About::updateWebUI'))
-                                }
-                                progress={webUIUpdateProgress}
-                                updateState={webUIUpdateState}
-                            />
+                            canCheckWebUIUpdates ? (
+                                <VersionInfo
+                                    version={aboutWebUI.tag}
+                                    isCheckingForUpdate={isCheckingForWebUIUpdate}
+                                    isUpdateAvailable={isWebUIUpdateAvailable}
+                                    updateCheckError={webUIUpdateCheckError}
+                                    checkForUpdate={checkForWebUIUpdate}
+                                    triggerUpdate={() =>
+                                        requestManager
+                                            .updateWebUI()
+                                            .response.catch(defaultPromiseErrorHandler('About::updateWebUI'))
+                                    }
+                                    progress={webUIUpdateProgress}
+                                    updateState={webUIUpdateState}
+                                />
+                            ) : (
+                                aboutWebUI.tag
+                            )
                         }
                     />
                 </ListItem>
