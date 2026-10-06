@@ -22,7 +22,8 @@ import { AppRoutes } from '@/base/AppRoute.constants.ts';
 import { useMetadataServerSettings } from '@/features/settings/services/ServerSettingsMetadata.ts';
 import { makeToast } from '@/base/utils/Toast.ts';
 import { t } from '@lingui/core/macro';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
+import type { RouteStateSourceBrowse } from '@/features/source/Source.types.ts';
 import { ReactRouter } from '@/lib/react-router/ReactRouter.ts';
 import { MigrationOptionsDialog } from '@/features/migration/components/MigrationOptionsDialog.tsx';
 import { AwaitableComponent } from 'awaitable-component';
@@ -61,7 +62,8 @@ export const MangaCard = memo((props: MangaCardProps) => {
     const { id, firstUnreadChapter, downloadCount, unreadCount } = manga;
 
     const { mangaId: mangaIdAsString } = useParams<{ mangaId: string }>();
-    const migrationSourceMangaId = Number(mangaIdAsString);
+    const { state } = useLocation<RouteStateSourceBrowse>();
+    const migrationSourceMangaId = Number(mangaIdAsString ?? state?.mangaId);
 
     const {
         settings: { showContinueReadingButton },

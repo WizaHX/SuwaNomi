@@ -64,10 +64,12 @@ export const MigrationOptionsDialog = ({
             <DialogTitle>{t`Migration options`}</DialogTitle>
             <DialogContent dividers>
                 <DialogContentText sx={{ mb: 2 }}>
-                    {t`Migrate keeps the original entry, categories, tracking and settings. The new source replaces all chapters; chapters up to your highest read number stay read. Downloads and old chapter history are removed. The selected destination entry and its separate library data are removed.`}
+                    Migrate keeps the original entry, categories, tracking and settings. The new source replaces all
+                    chapters; chapters up to your highest read number stay read. Downloads and old chapter history are
+                    removed. The selected destination entry and its separate library data are removed.
                 </DialogContentText>
                 <FormGroup>
-                    <FormLabel>{t`Copy options (do not affect migration)`}</FormLabel>
+                    <FormLabel>Copy options (do not affect migration)</FormLabel>
                     <CheckboxInput
                         disabled={isMigrating}
                         label={t`Chapter`}
