@@ -73,6 +73,10 @@ jobs:
             | jq -e '.data.__schema.mutationType.fields | any(.name == "migrateMangaSameId")'
           docker exec suwanomi-smoke cmp /opt/suwanomi/webui/index.html \
             /home/suwayomi/.local/share/Tachidesk/webUI/index.html
+          test "$(docker exec suwanomi-smoke id -u)" = 1000
+          expected_jar=$(sha256sum .docker-build/server.jar | cut -d ' ' -f 1)
+          actual_jar=$(docker exec suwanomi-smoke sha256sum /home/suwayomi/startup/tachidesk_latest.jar | cut -d ' ' -f 1)
+          test "$actual_jar" = "$expected_jar"
       - name: Image name
         id: image
         env:

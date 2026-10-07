@@ -4,6 +4,8 @@ The image includes both the custom server and WebUI. It uses a pinned [upstream 
 
 ## Publish on GitHub
 
+The Docker build replaces the upstream server JAR in an intermediate stage, then copies the merged filesystem into a fresh final image. This avoids shipping the old JAR in a hidden layer. The final stage explicitly restores the pinned runtime's environment, user, working directory, port and entrypoint; review these when changing the base digest. The tradeoff is a larger layer to download when the server changes, since runtime files and the server JAR share that layer.
+
 1. Make the repository public and merge the Docker setup into its default branch.
 2. In **Actions → Build and publish Docker image → Run workflow**, select `main`.
 3. After the first successful publication, open the `suwanomi` package settings on GitHub and set its visibility to **Public**. GHCR package visibility is separate from repository visibility.
