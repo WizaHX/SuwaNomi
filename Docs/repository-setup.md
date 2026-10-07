@@ -31,6 +31,15 @@ git subtree pull --prefix=suwa-server upstream master
 git subtree pull --prefix=suwa-webUI upstream-webui master
 ```
 
+To update to stable releases instead of the latest `master` commits, substitute release tags. For example:
+
+```sh
+git subtree pull --prefix=suwa-server upstream v2.4.2366
+git subtree pull --prefix=suwa-webUI upstream-webui v20260929.01
+```
+
+These are example versions. When updating, choose the desired stable tags from the [server releases](https://github.com/Suwayomi/Suwayomi-Server/releases) and [WebUI releases](https://github.com/Suwayomi/Suwayomi-WebUI/releases), checking their compatibility. Pulling an older tag does not remove newer upstream commits already merged.
+
 Resolve any merge conflicts, then build and test before pushing.
 
 ## Working state and agent instructions
